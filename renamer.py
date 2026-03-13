@@ -55,7 +55,7 @@ pattern = re.compile(r"S(\d{2})E(\d{2})", re.IGNORECASE)
 for file in folder.iterdir():
     if file.is_file():
         # print("file.name:", file.name)
-        match = pattern.search(file.name)
+        match = pattern.search(file.stem)
         if match:
             season = int(match.group(1))
             episode = int(match.group(2))
@@ -67,14 +67,14 @@ for file in folder.iterdir():
             show_name = show_part.replace(".", " ").strip()
             new_name = f"{show_name} - {episode_code}{extension}"
             new_path = file.with_name(new_name)
-
+            
             print(f"Original: {file.name}")
             print(f"New name: {new_name}")
             print(f"Rename: {file.name} -> {new_name}")
             print()
 
-            # file.rename(new_path)
-            
+            file.rename(new_path)
+
             # print(match.groups())
             # print(f"{file.name} -> Season {season}, Episode {episode}")
             
