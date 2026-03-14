@@ -1,3 +1,22 @@
+"""
+Series Renamer
+
+This script scans a folder containing TV episode files and
+renames them into a clean format.
+
+Example:
+    The.Office.S02E05.mkv
+    ->
+    The Office - S02E05.mkv
+
+The script extracts:
+- show name
+- season number
+- episode number
+
+and builds a standardized filename.
+"""
+
 # ===============================
 # MODULE IMPORTS
 # ===============================
