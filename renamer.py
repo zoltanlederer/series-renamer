@@ -31,6 +31,15 @@ from pathlib import Path
 # We use them to detect things like S02E05 inside filenames.
 import re
 
+# ===============================
+# GLOBAL SETTINGS
+# ===============================
+
+# Choose the filename style for the renamer
+# Options:
+#   "dash" → The Office - S02E06.mkv
+#   "dot"  → The.Office.S02E06.mkv
+style = "dot"
 
 # ===============================
 # FOLDER SETUP
@@ -212,19 +221,22 @@ def extract_show_name(filename: str) -> str:
 # FUNCTION: BUILD FINAL FILENAME
 # ===============================
 
+
 def build_new_filename(show_name: str, episode_code: str, extension: str) -> str:
     """
-    Combine show name, episode code and file extension.
+    Combine show name, episode code, and file extension based on the selected style.
 
-    Example:
-        show_name = "The Office"
-        episode_code = "S02E05"
-        extension = ".mkv"
-
-    Result:
-        "The Office - S02E05.mkv"
+    style = "dash"  → The Office - S02E06.mkv
+    style = "dot"   → The.Office.S02E06.mkv
     """
+    if style == "dash":
+        return f"{show_name} - {episode_code}{extension}"
 
+    if style == "dot":
+        show_name_clean = show_name.replace(" ", ".")
+        return f"{show_name_clean}.{episode_code}{extension}"
+
+    # fallback in case style is unknown
     return f"{show_name} - {episode_code}{extension}"
 
 
