@@ -31,43 +31,86 @@ from pathlib import Path
 # We use them to detect things like S02E05 inside filenames.
 import re
 
+# Command-line arguments
+import argparse
+
+
+# -------------------------------
+# COMMAND-LINE ARGUMENTS
+# -------------------------------
+# Example usage:
+# Preview renaming in "test_files" folder, dot style:
+#   python renamer.py
+#   python renamer.py --dry-run
+# Actually rename files, dash style:
+#   python renamer.py --style dash
+# Rename files in a custom folder:
+#   python renamer.py --folder /path/to/my/files
+
+parser = argparse.ArgumentParser(
+    description="Rename TV series files in a folder to a clean format."
+)
+
+# Folder argument (optional, defaults to "test_files")
+parser.add_argument(
+    "-f", "--folder",
+    type=str,
+    default="test_files",  # default folder if none provided
+    help="Path to the folder containing video files"
+)
+
+# Style argument: dash or dot
+parser.add_argument(
+    "-s", "--style",
+    type=str,
+    choices=["dash", "dot"],
+    default="dot",  # default style
+    help="Filename style: dash = 'The Office - S02E06', dot = 'The.Office.S02E06'"
+)
+
+# Dry-run argument: preview only
+parser.add_argument(
+    "-d", "--dry-run",
+    action="store_true",  # True if flag is provided, otherwise False
+    help="Preview changes without renaming files"
+)
+
+# Parse the arguments (reads what the user typed when running the script)
+args = parser.parse_args()
+
+
 # ===============================
 # GLOBAL SETTINGS
 # ===============================
+
+# These will always have valid values:
+# - folder: either default or user-provided
+# - style: either default or user-provided
+# - dry_run: True if user specified --dry-run, otherwise False
+
+# Default folder to scan
+folder = Path(args.folder)
 
 # Choose the filename style for the renamer
 # Options:
 #   "dash" → The Office - S02E06.mkv
 #   "dot"  → The.Office.S02E06.mkv
-style = "dot"
+style = args.style
+
+# If True → preview only (no files renamed)
+# If False → files will actually be renamed
+dry_run = args.dry_run
+
+print(f"Folder: {folder}")
+print(f"Style: {style}")
+print(f"Dry run: {dry_run}\n")
+
 
 # Supported video and subtitle file types
 MEDIA_EXTENSIONS = {
     ".mkv", ".mp4", ".avi", ".mov",
     ".srt", ".sub", ".ass", ".vtt"
 }
-
-# If True → preview only (no files renamed)
-# If False → files will actually be renamed
-dry_run = False
-
-# ===============================
-# FOLDER SETUP
-# ===============================
-
-# Path("test_files") creates a Path object pointing to a folder
-# named "test_files" in the current directory.
-#
-# Example structure:
-#
-# project_folder/
-#   renamer.py
-#   test_files/
-#       The.Office.S02E05.mkv
-#       The.Office.S02E06.mkv
-#
-folder = Path("test_files")
-
 
 # ===============================
 # REGEX PATTERNS
