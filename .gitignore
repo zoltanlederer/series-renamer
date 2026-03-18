@@ -8,3 +8,6 @@ venv/
 
 # macOS
 .DS_Store
+
+# test files
+test_files/
