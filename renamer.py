@@ -62,8 +62,10 @@ def get_episode_code(filename):
     return None
 
 
-def rename_episode_groups(episode_groups, folder, dry_run):
-    """ Group together the files by their season/episode, including cleaning the file names, then it renames it. If we use the dry_run mode it won't rename it, only print the result instead. """
+def group_files(folder):
+    """ Group together the files by their season/episode, including cleaning the file names. """
+    
+    episode_groups = {}
 
     # Create the groups
     for file in get_media_files(folder, MEDIA_EXTENSIONS):
@@ -76,7 +78,13 @@ def rename_episode_groups(episode_groups, folder, dry_run):
             episode_groups[episode_code] = [] # Create a list within the episode_goups dict, e.g. {'S02E05': [PosixPath('test_files/The Office - S02E05.mkv'), PosixPath('test_files/The Office - S02E05.srt')], 'S02E06': [PosixPath('test_files/The Office - S02E06.mkv'), PosixPath('test_files/The Office - S02E06.srt')]}
 
         episode_groups[episode_code].append(file) # Add file object (file path) to the list
-   
+    
+    return episode_groups
+
+
+def rename_files(episode_groups, dry_run):
+    """ Rename files. If we use the dry_run mode it won't rename it, only print the result instead. """
+
     # Rename the files based on which episode code (S02E05) has
     for episode, files in episode_groups.items():
         # episode: S02E05
@@ -110,4 +118,5 @@ def rename_episode_groups(episode_groups, folder, dry_run):
                 print(new_path)
 
 
-rename_episode_groups({}, folder, dry_run)
+episode_groups = group_files(folder)
+rename_files(episode_groups, dry_run)
