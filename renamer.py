@@ -84,6 +84,20 @@ def group_files(folder):
     return episode_groups
 
 
+def build_new_filename(filename, episode_code):
+    """Return a clean show name and episode code as a filename string, e.g. 'The Office - S02E05'"""
+    # episode_code: S02E05
+    # filename: Path object e.g. PosixPath('test_files/The Office - S02E05.mkv')
+
+    show_name = filename.stem # file name without suffix e.g. The Office - S02E05
+    show_name = show_name.replace('.', ' ').replace('_', ' ')
+    show_name = show_name.split(episode_code)[0] # keep only the part before the episode code, e.g. "The Office -"
+    show_name = show_name.rstrip(' -') # remove the trailing " -", e.g. "The Office -" -> "The Office"
+    show_name = show_name.strip() # remove extra space after the name, e.g. "The Office "
+
+    return f'{show_name} - {episode_code}' # Create the new file name string (without extension)
+
+
 def rename_files(episode_groups, dry_run, verbose):
     """ Rename files, including cleaning the file names. If we use the dry_run mode it won't rename it, only print the result instead. """
 
@@ -91,20 +105,14 @@ def rename_files(episode_groups, dry_run, verbose):
     for episode, files in episode_groups.items():
         # episode: S02E05
         # files: list of path e.g. [PosixPath('test_files/The Office - S02E05.mkv'), PosixPath('test_files/The Office - S02E05.srt')]
+        
+        # Call the function, which create the new file name string (without extension)
+        new_name = build_new_filename(files[0], episode) # use the first file's name only, to rename all files within the group
+        
         if verbose:
             print('episode', episode)
             for file in files:
-                print(f'- {file.name}')
-        
-        first_file = files[0] # use the first file's name only, to rename all files within the group
-
-        show_name = first_file.stem # file name without suffix e.g. The Office - S02E05
-        show_name = show_name.replace('.', ' ').replace('_', ' ')
-        show_name = show_name.split(episode)[0] # keep only the part before the episode code, e.g. "The Office -"
-        show_name = show_name.rstrip(' -') # remove the trailing " -", e.g. "The Office -" -> "The Office"
-        show_name = show_name.strip() # remove extra space after the name, e.g. "The Office "
-
-        new_name = f'{show_name} - {episode}' # Create the new file name string (without extension)
+                print(f'- {file.name}')    
 
         # Rename the files with the new string
         for file in files:
@@ -123,3 +131,4 @@ def rename_files(episode_groups, dry_run, verbose):
 
 episode_groups = group_files(folder)
 rename_files(episode_groups, dry_run, verbose)
+
