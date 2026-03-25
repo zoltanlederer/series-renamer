@@ -101,6 +101,7 @@ def build_new_filename(filename, episode_code):
 def rename_files(renames, dry_run):
     """ Rename files, including cleaning the file names. If we use the dry_run mode it won't rename it, only print the result instead. """
 
+    result = { "succeeded": [], "failed": [] } #{'succeeded': ['The Office - S02E05', ''The Office - S02E06'], 'failed': ['The Office - S02E07']}
     # Rename the files based on the prepared pairs
     for old_name, new_name in renames:
         # Rename the files with the new string
@@ -110,12 +111,17 @@ def rename_files(renames, dry_run):
             continue # skip if the file is already correctly named
 
         new_path = old_name.with_name(final_name) # Create the full path for the rename, e.g. test_files/The Office - S02E05.mkv
-
-        if not dry_run:                
-            old_name.rename(new_path)
+        
+        if not dry_run:
+            try:  
+                old_name.rename(new_path)
+                result["succeeded"].append(new_name)
+            except Exception as e:
+                result["failed"].append(str(e))
         else:
             print(new_path)
 
+    return result
 
 def prepare_renames(episode_groups):
     """ Prepare the files to rename in a tuple as old path and new name """
