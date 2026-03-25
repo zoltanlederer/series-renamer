@@ -81,7 +81,7 @@ def group_files(folder):
 
         episode_groups[episode_code].append(file) # Add file object (file path) to the list
     
-    return episode_groups
+    return episode_groups # e.g. {'S02E05': [PosixPath('test_files/The Office - S02E05.mkv'), PosixPath('test_files/The Office - S02E05.srt')], 'S02E06': [PosixPath('test_files/The Office - S02E06.mkv'), PosixPath('test_files/The Office - S02E06.srt')]}
 
 
 def build_new_filename(filename, episode_code):
@@ -98,37 +98,65 @@ def build_new_filename(filename, episode_code):
     return f'{show_name} - {episode_code}' # Create the new file name string (without extension)
 
 
-def rename_files(episode_groups, dry_run, verbose):
+def rename_files(renames, dry_run):
     """ Rename files, including cleaning the file names. If we use the dry_run mode it won't rename it, only print the result instead. """
 
-    # Rename the files based on which episode code (S02E05) has
-    for episode, files in episode_groups.items():
-        # episode: S02E05
-        # files: list of path e.g. [PosixPath('test_files/The Office - S02E05.mkv'), PosixPath('test_files/The Office - S02E05.srt')]
-        
-        # Call the function, which create the new file name string (without extension)
-        new_name = build_new_filename(files[0], episode) # use the first file's name only, to rename all files within the group
-        
-        if verbose:
-            print('episode', episode)
-            for file in files:
-                print(f'- {file.name}')    
-
+    # Rename the files based on the prepared pairs
+    for old_name, new_name in renames:
         # Rename the files with the new string
+        final_name = f'{new_name}{old_name.suffix}' # e.g. The Office - S02E05.mkv
+
+        if old_name.name == final_name:
+            continue # skip if the file is already correctly named
+
+        new_path = old_name.with_name(final_name) # Create the full path for the rename, e.g. test_files/The Office - S02E05.mkv
+
+        if not dry_run:                
+            old_name.rename(new_path)
+        else:
+            print(new_path)
+
+
+def prepare_renames(episode_groups):
+    """ Prepare the files to rename in a tuple as old path and new name """
+
+    # episode_groups e.g. {'S02E05': [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The.Office.S02E05.srt')], 'S02E06': [PosixPath('test_files/The.Office.S02E06.mkv'), PosixPath('test_files/The.Office.S02E06.srt')]}
+    # Create pairs of files based on which episode code (S02E05) has in the group
+    renames = [] 
+    for episode, files in episode_groups.items():
         for file in files:
-            final_name = f'{new_name}{file.suffix}' # e.g. The Office - S02E05.mkv
+            new_name = build_new_filename(file, episode)
+            pair = (file, new_name)
+            renames.append(pair)
 
-            if file.name == final_name:
-                continue # skip if the file is already correctly named
+    # returns: e.g.  
+    # [(PosixPath('test_files/The.Office.S02E05.mkv'), 'The Office - S02E05'),
+    # (PosixPath('test_files/The.Office.S02E05.srt'), 'The Office - S02E05'),
+    # (PosixPath('test_files/The.Office.S02E06.mkv'), 'The Office - S02E06'),
+    # (PosixPath('test_files/The.Office.S02E06.srt'), 'The Office - S02E06')]
+    return renames
 
-            new_path = file.with_name(final_name) # Create the full path for the rename, e.g. test_files/The Office - S02E05.mkv
 
-            if not dry_run:                
-                file.rename(new_path)
-            else:
-                print(new_path)
+def show_preview(renames):
+    """ Display the before/after table for the renamed files """
+    
+    for old_name, new_name in renames:
+        print(f'{old_name.stem} -> {new_name}')
+
+
+def confirm():
+    answer = input('Proceed? [y/N]: ').strip().lower()
+    if answer in ('y', 'yes'):
+        return True
+    else:
+        print('Process cancelled')
+        return False
 
 
 episode_groups = group_files(folder)
-rename_files(episode_groups, dry_run, verbose)
+renames = prepare_renames(episode_groups)
+show_preview(renames)
+
+if confirm():    
+    rename_files(renames, dry_run)
 
