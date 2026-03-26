@@ -141,11 +141,11 @@ def prepare_renames(episode_groups):
             original_name = new_name # store the original file name in case of name conflict
             counter = 2
             # if the new_name exists in the used_names, then run the loop and append a number in brackets, e.g. (2)
-            while new_name in used_names:
+            while new_name + file.suffix in used_names:
                 new_name = f'{original_name} ({counter})'
                 counter += 1
 
-            used_names.add(new_name)
+            used_names.add(new_name + file.suffix) # include extension to avoid false conflicts between .mkv and .srt
             pair = (file, new_name)  
             renames.append(pair)
 
