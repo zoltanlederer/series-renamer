@@ -145,20 +145,20 @@ def prepare_renames(video_files, episode_groups, style):
     renames = []
     used_names = set() # track used filenames to prevent duplicate names and accidental file overwrites
 
-    # Add all files from the folder to a set (list) to keep track of already renamed files
+    # Add all existing files to used_names to prevent overwriting them during rename
     for file in video_files:
         used_names.add(file.name)
-        # print('used_names:', used_names)
+
     for episode, files in episode_groups.items():
         for file in files:
-            new_name = build_new_filename(file, episode, style)
-            # print('***', new_name + file.suffix)
-            # print(f'new_name: {new_name}, checking: {new_name + file.suffix}')
+            new_name = build_new_filename(file, episode, style) # e.g. The.Office.S02E05
+
             original_name = new_name # store the original file name in case of name conflict
             counter = 2
-            # if the new_name exists in the used_names, then run the loop and append a number in brackets, e.g. (2)
-            # print(f'checking: "{new_name + file.suffix}" in used_names: {new_name + file.suffix in used_names}')
+            
             used_names.discard(file.name)  # remove current file before checking conflicts
+
+            # if the new_name exists in the used_names, then run the loop and append a number in brackets, e.g. (2)
             while new_name + file.suffix in used_names:
                 if style == 'dot':
                     new_name = f'{original_name}.({counter})'
