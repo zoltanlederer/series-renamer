@@ -54,7 +54,7 @@ def get_media_files(folder, extensions):
             continue # skip non media extensions
 
         video_files.append(file)
-    
+
     return video_files
 
 
@@ -137,20 +137,28 @@ def rename_files(renames, dry_run):
     
     return result
 
-def prepare_renames(episode_groups, style):
+def prepare_renames(video_files, episode_groups, style):
     """ Prepare the files to rename in a tuple as old path and new name. Also check for file name conflicts. """
 
     # episode_groups e.g. {'S02E05': [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The.Office.S02E05.srt')], 'S02E06': [PosixPath('test_files/The.Office.S02E06.mkv'), PosixPath('test_files/The.Office.S02E06.srt')]}
     # Create pairs of files based on which episode code (S02E05) has in the group
     renames = []
     used_names = set() # track used filenames to prevent duplicate names and accidental file overwrites
+
+    # Add all files from the folder to a set (list) to keep track of already renamed files
+    for file in video_files:
+        used_names.add(file.name)
+        # print('used_names:', used_names)
     for episode, files in episode_groups.items():
         for file in files:
             new_name = build_new_filename(file, episode, style)
-
+            # print('***', new_name + file.suffix)
+            # print(f'new_name: {new_name}, checking: {new_name + file.suffix}')
             original_name = new_name # store the original file name in case of name conflict
             counter = 2
             # if the new_name exists in the used_names, then run the loop and append a number in brackets, e.g. (2)
+            # print(f'checking: "{new_name + file.suffix}" in used_names: {new_name + file.suffix in used_names}')
+            used_names.discard(file.name)  # remove current file before checking conflicts
             while new_name + file.suffix in used_names:
                 if style == 'dot':
                     new_name = f'{original_name}.({counter})'
@@ -199,9 +207,9 @@ def confirm():
         print('Process cancelled')
         return False
 
-
+video_files = get_media_files(folder, MEDIA_EXTENSIONS)
 episode_groups = group_files(folder)
-renames = prepare_renames(episode_groups, style)
+renames = prepare_renames(video_files, episode_groups, style)
 show_preview(renames)
 
 if confirm():    
