@@ -22,10 +22,10 @@ import sys
 import re
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-f', '--folder', default='test_files')
-parser.add_argument('-d', '--dry-run', action='store_true')
-parser.add_argument('-v', '--verbose', action='store_true')
+parser = argparse.ArgumentParser(description='The program scans a folder containing TV episode files and renames them into a clean format including the episode titles.')
+parser.add_argument('-f', '--folder', default='test_files', help='add the path of the folder')
+parser.add_argument('-d', '--dry-run', action='store_true', help='run the program without renaming the files, perfect for testing')
+parser.add_argument('-v', '--verbose', action='store_true', help='show detailed output for each file processed')
 args = parser.parse_args()
 
 dry_run = args.dry_run
