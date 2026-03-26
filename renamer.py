@@ -128,15 +128,25 @@ def rename_files(renames, dry_run):
     return result
 
 def prepare_renames(episode_groups):
-    """ Prepare the files to rename in a tuple as old path and new name """
+    """ Prepare the files to rename in a tuple as old path and new name. Also check for file name conflicts. """
 
     # episode_groups e.g. {'S02E05': [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The.Office.S02E05.srt')], 'S02E06': [PosixPath('test_files/The.Office.S02E06.mkv'), PosixPath('test_files/The.Office.S02E06.srt')]}
     # Create pairs of files based on which episode code (S02E05) has in the group
-    renames = [] 
+    renames = []
+    used_names = set() # track used filenames to prevent duplicate names and accidental file overwrites
     for episode, files in episode_groups.items():
         for file in files:
             new_name = build_new_filename(file, episode)
-            pair = (file, new_name)
+
+            original_name = new_name # store the original file name in case of name conflict
+            counter = 2
+            # if the new_name exists in the used_names, then run the loop and append a number in brackets, e.g. (2)
+            while new_name in used_names:
+                new_name = f'{original_name} ({counter})'
+                counter += 1
+
+            used_names.add(new_name)
+            pair = (file, new_name)  
             renames.append(pair)
 
     # returns: e.g.  
