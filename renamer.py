@@ -195,26 +195,28 @@ def prepare_renames(video_files, episode_groups, style):
 
 def show_preview(renames):
     """ Display the before/after table for the renamed files """
-    
+
+    sorted_renames = sorted(renames, key=lambda x: x[0].name) # sort alphabetically for easier reading
     unchanged = 0
-    max_width = max(len(old_name.name) for old_name, _ in renames) # calculate the longest filename dynamically and use that as the column width
+    max_width = max(len(old_name.name) for old_name, _ in sorted_renames) # calculate the longest filename dynamically and use that as the column width
     print("-" * (max_width + 30))
     print(f"{'Original Name':<{max_width}} {'New Name':<{max_width}}")
     print("-" * (max_width + 30))
-    for old_name, new_name in renames:
+    for old_name, new_name in sorted_renames:
         if old_name.stem == new_name:
             print(f'{old_name.name:<{max_width}} {"(no change)":<{max_width}}')
             unchanged += 1
         else:
             print(f'{old_name.name:<{max_width}} {new_name + old_name.suffix:<{max_width}}')
     print("-" * (max_width + 30))
-    print(f"Total: {len(renames)} files | To rename: {len(renames)-unchanged} | No change: {unchanged}")
+    print(f"Total: {len(sorted_renames)} files | To rename: {len(sorted_renames)-unchanged} | No change: {unchanged}")
     print("-" * (max_width + 30))
 
 
 def show_summary(result, dry_run):
     """ Display the result after renaming the files """
 
+    sorted_result = sorted(result['failed']) # sort alphabetically for easier reading
     print("-" * 70)
     print("Summary")
     print("-" * 70)
@@ -224,8 +226,8 @@ def show_summary(result, dry_run):
         print(f"✅ {len(result['succeeded'])} file(s) would be renamed")
 
     if result['failed']:    
-        print(f"❌ {len(result['failed'])} file(s) failed")
-        for file in result['failed']:
+        print(f"❌ {len(sorted_result)} file(s) failed")
+        for file in sorted_result:
             print(f"   • {file}")
     else:
         print(f"❌ 0 file(s) failed")
