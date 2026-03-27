@@ -60,9 +60,15 @@ def get_media_files(folder, extensions):
 
 def get_episode_code(filename):
     """Return the episode code in S02E05 format, or None if not found."""
-    match = re.search(r"S\d{2}E\d{2}", filename)
+    
+    match = re.search(r"S\d{2}E\d{2}-?(E\d{2})?", filename)    
     if match:
-        return match.group()
+        raw = match.group().replace('-', '') # always remove dash S02E05E06
+        # if it has a second episode (length > 6)
+        if len(raw) > 6: # more than just "S02E05"
+            return raw[:6] + '-' + raw[6:] # e.g. "S02E05-E06"
+        else:
+            return raw # e.g. "S02E05"
     return None
 
 
@@ -90,11 +96,18 @@ def build_new_filename(filename, episode_code, style):
     """Return a clean show name and episode code as a filename string, e.g. 'The Office - S02E05'"""
     # episode_code: S02E05
     # filename: Path object e.g. PosixPath('test_files/The.Office.S02E06.720p.WEB-DL.mkv')
+    
+    episode_code_no_dash = episode_code.replace('-', '')  # remove dash: S02E09-E10 -> S02E09E10
+    episode_code_dash_as_space = episode_code.replace('-', ' ')  # dash to space: S02E09-E10 -> S02E09 E10
 
     # Clean the show name
     show_name = filename.stem # file name without suffix e.g. The.Office.S02E06.720p.WEB-DL
     show_name = show_name.replace('.', ' ').replace('_', ' ').replace('-', ' ') # e.g. The Office S02E06 720p WEB DL
-    show_name = show_name.split(episode_code)[0] # keep only the part before the episode code, e.g. "The Office "
+    # keep only the part before the episode code, e.g. "The Office "
+    if episode_code_no_dash in show_name:
+        show_name = show_name.split(episode_code_no_dash)[0]
+    elif episode_code_dash_as_space in show_name:
+        show_name = show_name.split(episode_code_dash_as_space)[0]
     show_name = show_name.strip() # remove leading and trailing spaces "The Office"
 
     # Create the new file name string (without extension)
