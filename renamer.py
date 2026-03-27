@@ -61,14 +61,14 @@ def get_media_files(folder, extensions):
 def get_episode_code(filename):
     """Return the episode code in S02E05 format, or None if not found."""
     
-    match = re.search(r"S\d{2}E\d{2}-?(E\d{2})?", filename)    
+    match = re.search(r"S\d{2}E\d{2}-?(E\d{2})?", filename, re.IGNORECASE)    
     if match:
         raw = match.group().replace('-', '') # always remove dash S02E05E06
         # if it has a second episode (length > 6)
         if len(raw) > 6: # more than just "S02E05"
-            return raw[:6] + '-' + raw[6:] # e.g. "S02E05-E06"
+            return (raw[:6] + '-' + raw[6:]).upper() # e.g. "S02E05-E06"
         else:
-            return raw # e.g. "S02E05"
+            return raw.upper() # e.g. "S02E05"
     return None
 
 
@@ -96,12 +96,13 @@ def build_new_filename(filename, episode_code, style):
     """Return a clean show name and episode code as a filename string, e.g. 'The Office - S02E05'"""
     # episode_code: S02E05
     # filename: Path object e.g. PosixPath('test_files/The.Office.S02E06.720p.WEB-DL.mkv')
-    
+    # print(f'episode_code in build_new_filename: {episode_code}')
     episode_code_no_dash = episode_code.replace('-', '')  # remove dash: S02E09-E10 -> S02E09E10
     episode_code_dash_as_space = episode_code.replace('-', ' ')  # dash to space: S02E09-E10 -> S02E09 E10
 
     # Clean the show name
     show_name = filename.stem # file name without suffix e.g. The.Office.S02E06.720p.WEB-DL
+    show_name = show_name.upper() # convert to uppercase
     show_name = show_name.replace('.', ' ').replace('_', ' ').replace('-', ' ') # e.g. The Office S02E06 720p WEB DL
     # keep only the part before the episode code, e.g. "The Office "
     if episode_code_no_dash in show_name:
@@ -109,6 +110,7 @@ def build_new_filename(filename, episode_code, style):
     elif episode_code_dash_as_space in show_name:
         show_name = show_name.split(episode_code_dash_as_space)[0]
     show_name = show_name.strip() # remove leading and trailing spaces "The Office"
+    show_name = show_name.title()  # convert to title case
 
     # Create the new file name string (without extension)
     if style == 'dot':
@@ -122,7 +124,6 @@ def build_new_filename(filename, episode_code, style):
     else:
         # fallback in case style is unknown
         return f'{show_name} - {episode_code}'
-
 
 def rename_files(renames, dry_run):
     """ Rename files, including cleaning the file names. If we use the dry_run mode it won't rename it, only print the result instead. """
@@ -145,10 +146,7 @@ def rename_files(renames, dry_run):
             except Exception as e:
                 result["failed"].append(f"{old_name.name} -> {final_name}")
         else:
-            try:
-                result["succeeded"].append(new_name)
-            except Exception as e:
-                result["failed"].append(f"{old_name.name} -> {final_name}")
+            result["succeeded"].append(new_name)
     
     return result
 
@@ -214,13 +212,17 @@ def show_preview(renames):
     print("-" * (max_width + 30))
 
 
-def show_summary(result):
+def show_summary(result, dry_run):
     """ Display the result after renaming the files """
 
     print("-" * 70)
     print("Summary")
     print("-" * 70)
-    print(f"✅ {len(result['succeeded'])} file(s) successfully renamed")
+    if not dry_run:
+        print(f"✅ {len(result['succeeded'])} file(s) successfully renamed")
+    else:
+        print(f"✅ {len(result['succeeded'])} file(s) would be renamed")
+
     if result['failed']:    
         print(f"❌ {len(result['failed'])} file(s) failed")
         for file in result['failed']:
@@ -242,6 +244,6 @@ episode_groups = group_files(video_files)
 renames = prepare_renames(video_files, episode_groups, style)
 show_preview(renames)
 
-if confirm():    
+if confirm():
     result = rename_files(renames, dry_run)
-    show_summary(result)
+    show_summary(result, dry_run)
