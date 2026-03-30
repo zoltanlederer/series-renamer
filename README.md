@@ -1,4 +1,4 @@
-# Series Renamer
+# TVRenamer
 
 A Python script that renames TV series episode files using episode titles from an API.
 

@@ -1,20 +1,14 @@
 """
-Series Renamer
+TVRenamer
 
-This script scans a folder containing TV episode files and
-renames them into a clean format.
+This script scans a selected folder containing TV episode files and renames them into a clean, standardized format, and with API integration automatically adds the correct episode title.
+The selected format styles can be dot, space, dash, and plex style.
 
 Example:
-    The.Office.S02E05.mkv
-    ->
-    The Office - S02E05.mkv
-
-The script extracts:
-- show name
-- season number
-- episode number
-
-and builds a standardized filename.
+space → The Office S02E05.mkv
+dot → The.Office.S02E05.mkv
+dash → The-Office-S02E05.mkv
+plex → The Office - S02E05.mkv
 """
 
 from pathlib import Path
