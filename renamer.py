@@ -267,6 +267,16 @@ def get_show_id(show_name):
     show_id = show_details['id']
     return show_id
 
+
+def get_episode_title(show_id, episode_code):
+    """ Fetch TV show's episode title """
+    numbers = extract_season_episode_numbers(episode_code)
+    episode_url = f"https://api.tvmaze.com/shows/{show_id}/episodebynumber?season={numbers['season']}&number={numbers['episode']}"
+    episode_details = requests.get(episode_url).json()
+    episode_title = episode_details['name']
+    return episode_title
+
+
 video_files = get_media_files(folder, MEDIA_EXTENSIONS)
 episode_groups = group_files(video_files)
 renames = prepare_renames(video_files, episode_groups, style)
@@ -281,6 +291,8 @@ if confirm():
     episode_code = get_episode_code(new_name)
     show_name = extract_show_name(old_path, episode_code) # e.g. The Office (old_path => PosixPath('test_files/The-Office-S02E05.mkv'), episode_code => S02E05)
     show_id = get_show_id(show_name)
+
+    get_episode_title(show_id, episode_code)
 
     # extract_episode_code = extract_season_episode_numbers(episode_code)
     result = rename_files(renames, dry_run)
