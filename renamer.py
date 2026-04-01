@@ -306,6 +306,22 @@ def get_all_episodes_title(show_id):
         sys.exit()
 
 
+def confirm_show_name(detected_name):
+    """ Ask user to confirm or correct the detected show name """
+
+    prompt = (f"Confirm TV Show name: {detected_name}\n"
+              "Press Enter to accept, or type a new name\n"
+              "('q' to quit): ")
+    answer = input(prompt)
+    
+    if answer == 'q':
+        sys.exit("Process cancelled by user.")
+    elif answer != '':
+        return answer
+    else:
+        return detected_name
+  
+
 def confirm():
     answer = input('Proceed? [y/N]: ').strip().lower()
     if answer in ('y', 'yes'):
@@ -326,6 +342,7 @@ episode_groups = group_files(video_files)
 # Get show name and fetch episode titles from API
 episode_code = get_episode_code(video_files[0].name) # e.g. S02E05
 show_name = extract_show_name(video_files[0], episode_code)
+show_name = confirm_show_name(show_name)
 show_id = get_show_id(show_name)
 all_episodes_title = get_all_episodes_title(show_id)
 
