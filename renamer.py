@@ -110,23 +110,105 @@ def extract_show_name(filename, episode_code):
     return show_name #The Office
 
 
-def build_new_filename(filename, episode_code, style):
-    """Return a clean show name and episode code as a filename string, e.g. 'The Office - S02E05'"""
+def build_new_filename(filename, episode_code, episodes_title, style):
+    """Return a formatted show name with episode code and title as a filename string, e.g. 'The Office - S02E05 - Title'"""
    
     show_name = extract_show_name(filename, episode_code)
 
     # Create the new file name string (without extension)
+    # also check if episode code in the file doesn't exist e.g. The.Office.S99E99.mkv in that case just return the base format, otherwise includes the title
     if style == 'dot':
-        return f'{show_name.replace(" ", ".")}.{episode_code}'
+        base = f'{show_name.replace(" ", ".")}.{episode_code}'
+        if episodes_title: 
+            return f'{base}.{episodes_title.replace(" ", ".").title()}'
+        return base
     elif style == 'space':
-        return f'{show_name} {episode_code}'
+        base = f'{show_name} {episode_code}'
+        if episodes_title:
+            return f'{base} {episodes_title}'
+        return base
     elif style == 'dash':
-        return f'{show_name.replace(" ", "-")}-{episode_code}'
+        base = f'{show_name.replace(" ", "-")}-{episode_code}'
+        if episodes_title:
+            return f'{base}-{episodes_title.replace(" ", "-").title()}'
+        return base
     elif style == 'plex':
-        return f'{show_name} - {episode_code}'
+        base = f'{show_name} - {episode_code}'
+        if episodes_title:
+            return f'{base} - {episodes_title.title()}'
+        return base
     else:
         # fallback in case style is unknown
-        return f'{show_name} - {episode_code}'
+        base = f'{show_name} - {episode_code}'
+        if episodes_title:
+            return f'{base} - {episodes_title.title()}'
+        return base
+
+def prepare_renames(video_files, episode_groups, all_episodes_title, style):
+    """ Prepare the files to rename in a tuple as old path and new name. Also check for file name conflicts. """
+
+    # episode_groups e.g. {'S02E05': [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The.Office.S02E05.srt')], 'S02E06': [PosixPath('test_files/The.Office.S02E06.mkv'), PosixPath('test_files/The.Office.S02E06.srt')]}
+    # Create pairs of files based on which episode code (S02E05) has in the group
+    renames = []
+    used_names = set() # track used filenames to prevent duplicate names and accidental file overwrites
+
+    # Add all existing files to used_names to prevent overwriting them during rename
+    for file in video_files:
+        used_names.add(file.name)
+
+    # e.g. episode_code => S02E05
+    # e.g. files => [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The Office - S02E05.mkv')]
+    for episode_code, files in episode_groups.items():
+        # e.g. filename => test_files/The.Office.S02E05.mkv
+        for filename in files:
+            # all_episodes_title.get(episode_code, None) => returns None if episode code not found, instead of crashing with KeyError (instead of => all_episodes_title[episode_code])
+            new_name = build_new_filename(filename, episode_code, all_episodes_title.get(episode_code, None), style) # e.g. The.Office.S02E05.Title
+            
+            original_name = new_name # store the original file name in case of name conflict
+            counter = 2
+            
+            used_names.discard(filename.name)  # temporarily removes the current file so it doesn't conflict with itself
+
+            # if the new_name exists in the used_names, then run the loop and append a number in brackets, e.g. (2)
+            while new_name + filename.suffix in used_names:
+                if style == 'dot':
+                    new_name = f'{original_name}.({counter})'
+                elif style == 'dash':
+                    new_name = f'{original_name}-({counter})'
+                else:
+                    new_name = f'{original_name} ({counter})'
+                counter += 1
+
+            used_names.add(new_name + filename.suffix) # include extension to avoid false conflicts between .mkv and .srt
+            pair = (filename, new_name + filename.suffix) # creates a tuple e.g. (PosixPath('test_files/...'), 'The.Office.S02E05.title.mkv')
+            renames.append(pair)
+
+    # returns: e.g.  
+    # [(PosixPath('test_files/The.Office.S02E05.title.mkv'), 'The Office - S02E05.title.mkv'),
+    # (PosixPath('test_files/The.Office.S02E05.title.srt'), 'The Office - S02E05.title.srt'),
+    # (PosixPath('test_files/The.Office.S02E06.title.mkv'), 'The Office - S02E06.title.mkv'),
+    # (PosixPath('test_files/The.Office.S02E06.title.srt'), 'The Office - S02E06.title.mkv')]
+    return renames
+
+
+def show_preview(renames):
+    """ Display the before/after table for the renamed files """
+
+    sorted_renames = sorted(renames, key=lambda x: x[0].name) # sort alphabetically for easier reading
+    unchanged = 0
+    max_width = max(len(old_name.name) for old_name, _ in sorted_renames) # calculate the longest filename dynamically and use that as the column width
+    print("-" * (max_width + 30))
+    print(f"{'Original Name':<{max_width}} {'New Name':<{max_width}}")
+    print("-" * (max_width + 30))
+    for old_name, new_name in sorted_renames:
+        if old_name.name == new_name:
+            print(f'{old_name.name:<{max_width}} {"(no change)":<{max_width}}')
+            unchanged += 1
+        else:
+            print(f'{old_name.name:<{max_width}} {new_name:<{max_width}}')
+    print("-" * (max_width + 30))
+    print(f"Total: {len(sorted_renames)} files | To rename: {len(sorted_renames)-unchanged} | No change: {unchanged}")
+    print("-" * (max_width + 30))
 
 
 def rename_files(renames, dry_run):
@@ -153,69 +235,6 @@ def rename_files(renames, dry_run):
     return result
 
 
-def prepare_renames(video_files, episode_groups, style):
-    """ Prepare the files to rename in a tuple as old path and new name. Also check for file name conflicts. """
-
-    # episode_groups e.g. {'S02E05': [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The.Office.S02E05.srt')], 'S02E06': [PosixPath('test_files/The.Office.S02E06.mkv'), PosixPath('test_files/The.Office.S02E06.srt')]}
-    # Create pairs of files based on which episode code (S02E05) has in the group
-    renames = []
-    used_names = set() # track used filenames to prevent duplicate names and accidental file overwrites
-
-    # Add all existing files to used_names to prevent overwriting them during rename
-    for file in video_files:
-        used_names.add(file.name)
-
-    for episode, files in episode_groups.items():
-        for file in files:
-            new_name = build_new_filename(file, episode, style) # e.g. The.Office.S02E05
-
-            original_name = new_name # store the original file name in case of name conflict
-            counter = 2
-            
-            used_names.discard(file.name)  # temporarily removes the current file so it doesn't conflict with itself
-
-            # if the new_name exists in the used_names, then run the loop and append a number in brackets, e.g. (2)
-            while new_name + file.suffix in used_names:
-                if style == 'dot':
-                    new_name = f'{original_name}.({counter})'
-                elif style == 'dash':
-                    new_name = f'{original_name}-({counter})'
-                else:
-                    new_name = f'{original_name} ({counter})'
-                counter += 1
-
-            used_names.add(new_name + file.suffix) # include extension to avoid false conflicts between .mkv and .srt
-            pair = (file, new_name + file.suffix) # creates a tuple e.g. (PosixPath('test_files/...'), 'The.Office.S02E05.mkv')
-            renames.append(pair)
-
-    # returns: e.g.  
-    # [(PosixPath('test_files/The.Office.S02E05.mkv'), 'The Office - S02E05'),
-    # (PosixPath('test_files/The.Office.S02E05.srt'), 'The Office - S02E05'),
-    # (PosixPath('test_files/The.Office.S02E06.mkv'), 'The Office - S02E06'),
-    # (PosixPath('test_files/The.Office.S02E06.srt'), 'The Office - S02E06')]
-    return renames
-
-
-def show_preview(renames):
-    """ Display the before/after table for the renamed files """
-
-    sorted_renames = sorted(renames, key=lambda x: x[0].name) # sort alphabetically for easier reading
-    unchanged = 0
-    max_width = max(len(old_name.name) for old_name, _ in sorted_renames) # calculate the longest filename dynamically and use that as the column width
-    print("-" * (max_width + 30))
-    print(f"{'Original Name':<{max_width}} {'New Name':<{max_width}}")
-    print("-" * (max_width + 30))
-    for old_name, new_name in sorted_renames:
-        if old_name.name == new_name:
-            print(f'{old_name.name:<{max_width}} {"(no change)":<{max_width}}')
-            unchanged += 1
-        else:
-            print(f'{old_name.name:<{max_width}} {new_name:<{max_width}}')
-    print("-" * (max_width + 30))
-    print(f"Total: {len(sorted_renames)} files | To rename: {len(sorted_renames)-unchanged} | No change: {unchanged}")
-    print("-" * (max_width + 30))
-
-
 def show_summary(result, dry_run):
     """ Display the result after renaming the files """
 
@@ -237,29 +256,6 @@ def show_summary(result, dry_run):
     print("-" * 70)
 
 
-def confirm():
-    answer = input('Proceed? [y/N]: ').strip().lower()
-    if answer in ('y', 'yes'):
-        return True
-    else:
-        print('Process cancelled')
-        return False
-
-
-def extract_season_episode_numbers(episode_code):
-    season = episode_code[1:3]
-    episode = episode_code[4:6]
-
-    return {'season': season, 'episode': episode}
-
-
-# def get_show_name(renames):
-#     episode_code = get_episode_code(renames[0][1])
-#     # remove the extension (from right split where has a dot, then replace episode code, then remove the last character)
-#     get_show_name = renames[0][1].rsplit('.',1)[0].replace(episode_code, '')[:-1]
-#     return (get_show_name)
-
-
 def get_show_id(show_name):
     """ Fetch TV show ID from TVmaze API """
     show_url = f'https://api.tvmaze.com/singlesearch/shows?q={show_name}'
@@ -268,19 +264,8 @@ def get_show_id(show_name):
     return show_id
 
 
-def get_episode_title(show_id, episode_code):
-    """ Fetch TV show's episode title """
-    # print('=>', show_id, episode_code)
-    numbers = extract_season_episode_numbers(episode_code)
-    # print(numbers['season'])
-    episode_url = f"https://api.tvmaze.com/shows/{show_id}/episodebynumber?season={numbers['season']}&number={numbers['episode']}"
-    episode_details = requests.get(episode_url).json()
-    episode_title = episode_details['name']
-    return episode_title
-
-
 def get_all_episodes_title(show_id):
-    """ Fetch TV show's episode title """
+    """ Fetch TV show's all episodes title into a dictionary"""
 
     episodes_url = f"https://api.tvmaze.com/shows/{show_id}/episodes"
     episodes_details = requests.get(episodes_url).json()
@@ -290,32 +275,37 @@ def get_all_episodes_title(show_id):
         episode_code = f"S{episode['season']:02}E{episode['number']:02}"
         episode_title = f"{episode['name']}"
         dictionary_of_episodes[episode_code] = episode_title
-        
-    return dictionary_of_episodes
+
+    return dictionary_of_episodes # e.g. {'S01E01': 'Pilot', 'S01E02': 'Diversity Day'....}
 
 
+def confirm():
+    answer = input('Proceed? [y/N]: ').strip().lower()
+    if answer in ('y', 'yes'):
+        return True
+    else:
+        print('Process cancelled')
+        return False
+    
+
+# Get files and groups
 video_files = get_media_files(folder, MEDIA_EXTENSIONS)
+if len(video_files) <= 0:
+    print(f'{folder} folder is empty!')
+    sys.exit()
+    
 episode_groups = group_files(video_files)
-renames = prepare_renames(video_files, episode_groups, style)
+
+# Get show name and fetch episode titles from API
+episode_code = get_episode_code(video_files[0].name) # e.g. S02E05
+show_name = extract_show_name(video_files[0], episode_code)
+show_id = get_show_id(show_name)
+all_episodes_title = get_all_episodes_title(show_id)
+
+# Prepare renames with episode titles
+renames = prepare_renames(video_files, episode_groups, all_episodes_title, style)
 show_preview(renames)
 
-
-# show_name = get_show_name(renames)
-# get_show_id(show_name)
-
 if confirm():
-    old_path, new_name = renames[0]    
-    episode_code = get_episode_code(new_name)
-    show_name = extract_show_name(old_path, episode_code) # e.g. The Office (old_path => PosixPath('test_files/The-Office-S02E05.mkv'), episode_code => S02E05)
-    show_id = get_show_id(show_name)
-
-    # get_episode_title(show_id, episode_code)
-    get_all_episodes_title(show_id)
-
-
-    # extract_episode_code = extract_season_episode_numbers(episode_code)
     result = rename_files(renames, dry_run)
     show_summary(result, dry_run)
-
-# code = extract_season_episode_numbers("S02E05")
-# print(code['season'])
