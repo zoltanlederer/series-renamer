@@ -147,15 +147,21 @@ def build_new_filename(official_name, episode_code, episodes_title, style):
 
 def prepare_renames(video_files, episode_groups, all_episodes_title, style, official_name):
     """ Prepare the files to rename in a tuple as old path and new name. Also check for file name conflicts. """
-    # episode_groups e.g. {'S02E05': [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The.Office.S02E05.srt')], 'S02E06': [PosixPath('test_files/The.Office.S02E06.mkv'), PosixPath('test_files/The.Office.S02E06.srt')]}
-    
+    # video_files — all files in the folder as Path objects
+    # episode_groups — files grouped by episode code e.g. {'S02E05': [file1, file2], 'S02E06': [file1, file2]}
+    # all_episodes_title — dictionary of episode titles from TVmaze e.g. {'S02E05': 'Halloween'}
+    # style — dot, space, dash or plex
+    # official_name — the confirmed show name from TVmaze e.g. "The Office"
+
     # Create pairs of files based on which episode code (S02E05) has in the group
     renames = []
     used_names = set() # track used filenames to prevent duplicate names and accidental file overwrites
+
     # Add all existing files to used_names to prevent overwriting them during rename
     for file in video_files:
         used_names.add(file.name)
 
+    # Outer loop goes through each episode code. Inner loop goes through each file for that episode (one episode can have both .mkv and .srt files)
     # e.g. episode_code => S02E05
     # e.g. files => [PosixPath('test_files/The.Office.S02E05.mkv'), PosixPath('test_files/The Office - S02E05.mkv')]
     for episode_code, files in episode_groups.items():
@@ -183,7 +189,6 @@ def prepare_renames(video_files, episode_groups, all_episodes_title, style, offi
             pair = (filename, new_name + filename.suffix) # creates a tuple e.g. (PosixPath('test_files/...'), 'The.Office.S02E05.title.mkv')
             renames.append(pair)
 
-    print(renames)
     # returns: e.g.  
     # [(PosixPath('test_files/The.Office.S02E05.mkv'), 'The Office - S02E05 - Halloween.mkv'),
     # (PosixPath('test_files/The.Office.S02E05.srt'), 'The Office - S02E05 - Halloween.srt'),
@@ -222,8 +227,8 @@ def rename_files(renames, dry_run):
         if old_name.name == new_name:
             continue # skip if the file is already correctly named
 
+        # .with_name() returns a new Path object where the final component (the file name) is replaced with the string provided
         new_path = old_name.with_name(new_name) # Create the full path for the rename, e.g. test_files/The Office - S02E05.mkv
-        
         if not dry_run:
             try:  
                 old_name.rename(new_path)
@@ -333,7 +338,7 @@ def confirm():
     
 
 # Scan files from the folder
-video_files = get_media_files(folder, MEDIA_EXTENSIONS)
+video_files = get_media_files(folder, MEDIA_EXTENSIONS) # all files in the folder as Path objects
 if len(video_files) <= 0:
     print(f'{folder} folder is empty!')
     sys.exit()
