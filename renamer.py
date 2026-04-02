@@ -332,27 +332,28 @@ def confirm():
         return False
     
 
-# Get files and groups
+# Scan files from the folder
 video_files = get_media_files(folder, MEDIA_EXTENSIONS)
 if len(video_files) <= 0:
     print(f'{folder} folder is empty!')
     sys.exit()
-    
+
+# Group files by episode code e.g. {'S02E05': [...], 'S02E06': [...]}
 episode_groups = group_files(video_files)
 
 # Get show name and fetch episode titles from API
-episode_code = get_episode_code(video_files[0].name) # e.g. S02E05
-show_name = extract_show_name(video_files[0], episode_code)
-show_name_confirmed = confirm_show_name(show_name)
+episode_code = get_episode_code(video_files[0].name) # e.g. "S02E05"
+show_name = extract_show_name(video_files[0], episode_code) # e.g. "office"
+show_name_confirmed = confirm_show_name(show_name) # user confirm or add tv show name
 show_detail = get_show_detail(show_name_confirmed) # use confirmed name
-official_name = show_detail['name'] # Use the show name from TVmaze API
-
-all_episodes_title = get_all_episodes_title(show_detail['id'])
+official_name = show_detail['name'] # use the show name from TVmaze API e.g. "The Office"
+all_episodes_title = get_all_episodes_title(show_detail['id']) # collect all episode names
 
 # Prepare renames with episode titles
-renames = prepare_renames(video_files, episode_groups, all_episodes_title, style, official_name)
+renames = prepare_renames(video_files, episode_groups, all_episodes_title, style, official_name) # collect all new formatted filenames to be renamed 
 show_preview(renames)
 
+# Final confirm to rename files
 if confirm():
     result = rename_files(renames, dry_run)
     show_summary(result, dry_run)
